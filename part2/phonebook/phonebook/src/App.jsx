@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import axios from 'axios'
+import personService from './services/persons'
 
 const FilterContact = ({ handleFilterChange }) => {
   return (
@@ -25,10 +25,10 @@ const PersonForm = ({ newName, newNumber, handleSubmit, handleNameChange, handle
   )
 }
 
-const Contacts = ({ contactsToShow }) => {
+const Contacts = ({ contactsToShow, handleDelete }) => {
   return (
     <ul>
-      {contactsToShow.map((person) => <li key={person.id}>{person.name} {person.number} </li>)}
+      {contactsToShow.map((person) => <li key={person.id}>{person.name} {person.number}  <button onClick={() => handleDelete(person.id)}>Delete</button></li>)}
     </ul>
   )
 }
@@ -41,10 +41,10 @@ const App = () => {
   const [showAll, setShowAll] = useState(true)
 
   useEffect(() => {
-    axios
-      .get('http://localhost:3001/persons')
-      .then(response => {
-        setPersons(response.data)
+    personService
+      .getAll()
+      .then(initialPersons => {
+        setPersons(initialPersons)
       })
   }, [])
 
@@ -54,13 +54,26 @@ const App = () => {
 
   const handleSubmit = (event) => {
     event.preventDefault()
-    const newContact = { name: newName, number: newNumber, id: persons.length + 1}
+    const newContact = { name: newName, number: newNumber}
     if (findBy(newName)) {
-      alert(`${newName} is already added to phonebook`)
+      if (confirm(`${newName} is alredy added to the phonebook, replace the old number with a new one?`)){
+        const person = persons.find(person => person.name === newName)
+        const updatePerson = { ...person, number: newNumber }
+        personService
+          .update(person.id, updatePerson)
+          .then(returnedPerson => {
+            setPersons(persons.map(person => person.id !== returnedPerson.id ? person : returnedPerson))
+
+          })
+      }
     } else {
-      setPersons(persons.concat(newContact))
-      setNewName('')
-      setNewNumber('')
+      personService
+      .create(newContact)
+      .then(returnedPerson => {
+        setPersons(persons.concat(returnedPerson))
+        setNewName('')
+        setNewNumber('')
+      })
     }
   }
 
@@ -77,6 +90,17 @@ const App = () => {
       setShowAll(false)
     } else { setShowAll(true)}
     setFilterValue(event.target.value)
+  }
+
+  const handleDelete = (id) => {
+    const personToDelete = persons.filter(person => person.id === id)
+    if (confirm(`Delete ${personToDelete[0].name}?`)) {
+      personService
+        .deletePerson(id)
+        .then(deletedPerson => {
+          setPersons(persons.filter(person => person.id !== deletedPerson.id))
+        })
+    }
   }
 
   const contactsToShow = showAll
@@ -96,7 +120,7 @@ const App = () => {
         handleNumberChange={handleNumberChange}
       />
       <h2>Numbers</h2>
-      <Contacts contactsToShow={contactsToShow} />
+      <Contacts contactsToShow={contactsToShow} handleDelete={handleDelete}/>
     </div>
   )
 }
