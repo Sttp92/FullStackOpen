@@ -33,12 +33,36 @@ const Contacts = ({ contactsToShow, handleDelete }) => {
   )
 }
 
+const NotificationError = ({ message }) => {
+  if (message === null) {
+    return null
+  }
+  return (
+    <div className="error">
+      {message}
+    </div>
+  )
+}
+
+const NotificationSuccess = ({ message }) => {
+  if (message === null) {
+    return null
+  }
+  return (
+    <div className="success">
+      {message}
+    </div>
+  )
+}
+
 const App = () => {
   const [persons, setPersons] = useState([]) 
   const [newName, setNewName] = useState('')
   const [newNumber, setNewNumber] = useState('')
   const [filterValue, setFilterValue] = useState('')
   const [showAll, setShowAll] = useState(true)
+  const [errorMessage, setErrorMessage] = useState(null)
+  const [successMessage, setSuccessMessage] = useState(null)
 
   useEffect(() => {
     personService
@@ -63,7 +87,23 @@ const App = () => {
           .update(person.id, updatePerson)
           .then(returnedPerson => {
             setPersons(persons.map(person => person.id !== returnedPerson.id ? person : returnedPerson))
-
+          })
+          .then(success => {
+            setSuccessMessage(
+              `You have successfully changed ${updatePerson.name}'s number`
+            )
+            setTimeout(() => {
+              setSuccessMessage(null)
+            }, 7000)
+          })
+          .catch(error => {
+            setErrorMessage(
+              `Information about ${updatePerson.name} has alredy been removed from server`
+            )
+            setTimeout(() => {
+              setErrorMessage(null)
+            }, 7000)
+            setPersons(persons.filter(person => person.id !== updatePerson.id))
           })
       }
     } else {
@@ -73,6 +113,14 @@ const App = () => {
         setPersons(persons.concat(returnedPerson))
         setNewName('')
         setNewNumber('')
+      })
+      .then(success => {
+        setSuccessMessage(
+          `You have successfully added ${newContact.name}'s number`
+        )
+        setTimeout(() => {
+          setSuccessMessage(null)
+        }, 7000)
       })
     }
   }
@@ -110,6 +158,8 @@ const App = () => {
   return (
     <div>
       <h1>Phonebook</h1>
+      <NotificationError message={errorMessage} />
+      <NotificationSuccess message={successMessage} />
       <FilterContact handleFilterChange={handleFilterChange} />
       <h2>Add new number</h2>
       <PersonForm
