@@ -7,7 +7,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:3001',
+        target: 'https://fullstackopenpart3-wujz.onrender.com',
         changeOrigin: true,
       },
     }
